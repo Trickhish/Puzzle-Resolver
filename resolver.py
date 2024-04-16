@@ -1,4 +1,4 @@
-from PIL import Image
+from PIL import Image, ImageDraw 
 import math
 import matplotlib.pyplot as plt
 from ipywidgets import interact, IntSlider
@@ -105,25 +105,35 @@ def sideScore(im1, im2, side):
     
     return(ttdist)
         
-
+def shiftPuzzle(ct):
+    pass
 
 def fillPiece(il, pc, w, ln, ct):
     fnb = [(e, f) for (e, f) in [(pc-1, 'r'), (pc+1, 'l'), (pc-w, 'd'), (pc+w, 'u')] if e>0 and e<ln and ct[e]!=-1]
     
     # pc vide, ct[pc]=-1
 
-    mx=0
+    mx=-1
     mxp=0
     for i in range(ln):
         if any(e==i for e in ct):
+            #print("piece",i,"is already placed")
             continue
 
         sc=0
         for (p, s) in fnb:
             sc+=sideScore(il[ct[p]], il[i], s)
-        if sc>mx:
+        #print("P"+str(ct[p])+"-P"+str(i)+" score is "+str(sc))
+        if mx==-1 or sc<mx:
             mx=sc
             mxp=i
+    
+    print("Score: "+str(mx))
+
+    if mx<1000:
+        #shiftPuzzle(ct)
+        return(-2)
+        #return(fillPiece(il, pc, w, ln, ct))
     
     return(mxp)
 
@@ -143,7 +153,7 @@ def resolvePuzzle(il):
 
     (bp, bpn) = (mdl+1, 1)
 
-    for i in range(5):
+    for i in range(pnb):
         ct[bp] = fillPiece(il, bp, w, len(ct), ct)
         dpc.append(bp)
 
@@ -151,8 +161,39 @@ def resolvePuzzle(il):
 
         markNeihbors(bp, w, len(ct), nbh)
         (bp, bpn) = findBestPiece(ct, nbh)
-        
 
+        #break
+    
+    buildPuzzle(il, ct).save("out.jpg")
+        
+def buildPuzzle(iml, ct):
+    nb= int(math.sqrt(len(ct)))
+
+    iw,ih = iml[0].size
+    w=nb*iw
+    h=nb*ih
+
+    oi = Image.new(mode="RGB", size=(w, h), color=(255, 255, 255))
+    drw = ImageDraw.Draw(oi)   
+
+    for yi in range(nb):
+        #drw.line(((0, yi*ih), (w, yi*ih)), fill="red", width=1) 
+        #drw.line(((yi*iw, 0), (yi*iw, h)), fill="red", width=1) 
+
+        for xi in range(nb):
+            x,y = xi*iw,yi*ih
+            #print("Image "+str(yi*nb+xi)+", at ("+str(xi)+","+str(yi)+")")
+
+            if ct[yi*nb+xi] >= 0:
+                oi.paste(iml[ct[yi*nb+xi]], (x,y))
+                drw.text((x, y+10), str(ct[yi*nb+xi]), fill=(120,120,120))
+            else:
+                drw.line(((x, y), (x+iw, y+ih)), fill="red", width=1)
+                drw.line(((x+iw, y), (x, y+ih)), fill="red", width=1) 
+            
+            drw.text((x, y), str(xi)+","+str(yi), fill=(120,120,120))
+
+    return(oi)
 
 
 i = Image.open("tk.jpg")
@@ -162,6 +203,9 @@ pnb = 64
 
 sil = cutImage(i, math.sqrt(pnb))
 print("Image Cut")
+
+#print(sideScore(sil[0], sil[1], 'r'))
+#print(sideScore(sil[0], sil[1], 'l'))
 
 #fig, axes = plt.subplots(16, 16, figsize=(8, 8))
 #plt.ion()
